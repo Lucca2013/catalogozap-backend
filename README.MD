@@ -12,7 +12,7 @@ CatálogoZap is a simple and practical solution to create digital product catalo
 ## about
 CatálogoZap is a website project where you can create a store (of any type) and list your products, including name, price, image, and description. When a customer wants to buy your product, they click a "Buy via WhatsApp" button and are redirected to a conversation with the store owner, who can then send a message indicating which product they want.
 
-CatálogoZap is a project created for training purposes by two programming students from the <a href="https://www.incantarestudio.com/">Incantare</a> group: <a href="https://github.com/Lucca2013">Lucca</a> and <a href="https://github.com/RodrigoSID">Rodrigo</a>.
+CatálogoZap is a project created for training purposes by <a href="https://github.com/Lucca2013">Lucca</a>
 
 ## technologies/stack
  - Backend: C# ASP.NET
