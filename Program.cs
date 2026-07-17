@@ -9,11 +9,13 @@ using CatalogoZap.Repositories.Interfaces;
 using System.Data;
 using Npgsql;
 using CatalogoZap.Infrastructure.CloudinaryService;
+using CatalogoZap.Infrastructure.SendGrid;
 using DotNetEnv;
+using Resend;
 
 var builder = WebApplication.CreateBuilder(args);
 
-Env.Load(Path.Combine(builder.Environment.ContentRootPath, ".env"));
+Env.Load(Path.Combine(Directory.GetCurrentDirectory(), ".env"));
 
 builder.Configuration
     .AddEnvironmentVariables()
@@ -55,6 +57,7 @@ builder.Services.AddSwaggerGen(c => {
 
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
+builder.Services.AddScoped<ISendGridService, SendGridService>();
 builder.Services.AddScoped<IProductsService, ProductsService>();
 builder.Services.AddScoped<IProductsRepository, ProductsRepository>();
 builder.Services.AddScoped<IProfilesService, ProfilesService>();

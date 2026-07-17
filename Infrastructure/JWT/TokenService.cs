@@ -7,7 +7,7 @@ namespace CatalogoZap.Infrastructure.JWT;
 
 public interface ITokenService
 {
-	string GenerateToken(Guid userId);
+	string GenerateToken(Guid userId, int expirationHours);
 }
 
 public class TokenService : ITokenService
@@ -36,7 +36,7 @@ public class TokenService : ITokenService
 		ClockSkew = TimeSpan.Zero
 	};
 
-	public string GenerateToken(Guid userId)
+	public string GenerateToken(Guid userId, int expirationHours)
 	{
 		var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["JWT_KEY"]!));
 		var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -50,7 +50,7 @@ public class TokenService : ITokenService
 			issuer: _config["JWT_ISSUER"],
 			audience: _config["JWT_AUDIENCE"],
 			claims: claims,
-			expires: DateTime.UtcNow.AddHours(1),
+			expires: DateTime.UtcNow.AddHours(expirationHours),
 			signingCredentials: credentials
 		);
 

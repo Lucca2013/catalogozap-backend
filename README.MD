@@ -20,14 +20,16 @@ CatálogoZap is a project created for training purposes by <a href="https://gith
  - Dapper
  - Postgresql (at neon.com)
  - Cloudinary (Image Database)
+ - Sendgrid (to send emails)
  - Repository pattern
 
 ## Features
-- Accounts system
+- Accounts system (register, login, password reseting)
 - Create and manage stores with name, image and description 
 - Register products with name, price, image, and description
 - WhatsApp integration for direct sales
 - Image upload using Cloudinary
+- Sending Emails
 - JWT authentication
 
 ##  How to run the project
@@ -50,6 +52,9 @@ JWT_ISSUER=
 JWT_AUDIENCE=
 CONNECTION_STRING=
 CLOUDINARY_KEY=
+SENDGRID_APIKEY=
+SENDGRID_EMAIL=
+FRONTEND_URL=
 ```
 and run
 ```bash

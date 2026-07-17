@@ -1,7 +1,6 @@
 using CatalogoZap.Models;
 using CatalogoZap.Services.Interfaces;
 using CatalogoZap.Repositories.Interfaces;
-using CatalogoZap.Services.Interfaces;
 using CatalogoZap.DTOs;
 using CatalogoZap.Infrastructure.CloudinaryService;
 using Microsoft.AspNetCore.Http.HttpResults;
