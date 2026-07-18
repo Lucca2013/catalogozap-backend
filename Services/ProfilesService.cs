@@ -6,6 +6,7 @@ using CatalogoZap.Infrastructure.SendGrid;
 using CatalogoZap.Models;
 using CatalogoZap.Repositories.Interfaces;
 using CatalogoZap.Services.Interfaces;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Configuration;
 
 namespace CatalogoZap.Services;
@@ -20,11 +21,11 @@ public class ProfilesService : IProfilesService
     private readonly IConfiguration _config;
 
     public ProfilesService(
-        IProductsRepository productsRepository, 
-        IProfilesRepository profilesRepository, 
-        ITokenService tokenService, 
-        ICloudinaryService cloudinaryService, 
-        ISendGridService sendGridService, 
+        IProductsRepository productsRepository,
+        IProfilesRepository profilesRepository,
+        ITokenService tokenService,
+        ICloudinaryService cloudinaryService,
+        ISendGridService sendGridService,
         IConfiguration config)
     {
         _productsRepository = productsRepository;
@@ -43,10 +44,10 @@ public class ProfilesService : IProfilesService
 
     public async Task<string> Login(LoginDTO dto)
     {
-        var dbData = await _profilesRepository.GetProfileByEmail(dto.Email) 
+        var dbData = await _profilesRepository.GetProfileByEmail(dto.Email)
             ?? throw new UnauthorizedException("User doesnt exist");
 
-        if (!BCrypt.Net.BCrypt.Verify(dto.Password, dbData.Password)) 
+        if (!BCrypt.Net.BCrypt.Verify(dto.Password, dbData.Password))
             throw new UnauthorizedException("Incorrect Password");
 
         return _tokenService.GenerateToken(dbData.Id, 24);
@@ -54,7 +55,7 @@ public class ProfilesService : IProfilesService
 
     public async Task Register(RegisterDTO dto)
     {
-        if (await _profilesRepository.GetProfileByEmail(dto.Email) != null) 
+        if (await _profilesRepository.GetProfileByEmail(dto.Email) != null)
             throw new UnauthorizedException("User already exist");
 
         string hashPassword = BCrypt.Net.BCrypt.HashPassword(dto.Password, workFactor: 12);
@@ -69,15 +70,39 @@ public class ProfilesService : IProfilesService
         await _profilesRepository.InsertUser(register);
     }
 
+    public async Task ResetPassword(ResetPasswordDTO dto, Guid UserId)
+    {
+        var profile = await _profilesRepository.GetProfileById(UserId);
+
+        if (profile == null)
+            throw new NotFoundException("User do not exist");
+
+        string hashPassword = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword, workFactor: 12);
+
+        var newData = new ProfileModel
+        {
+            Id = profile.Id,
+            Username = profile.Username,
+            Bio = profile.Bio,
+            Phone = profile.Phone,
+            LogoUrl = profile.LogoUrl,
+            CreatedAt = profile.CreatedAt,
+            Email = profile.Email,
+            Premium = profile.Premium,
+            Password = hashPassword
+        };
+
+        await _profilesRepository.ModifyProfile(UserId, newData);
+    }
+
     public async Task PasswordRecovery(PasswordRecoveryDTO dto)
     {
         var profile = await _profilesRepository.GetProfileByEmail(dto.Email)
             ?? throw new NotFoundException("User doesnt exist");
 
-        string token = _tokenService.GenerateToken(profile.Id, 1) 
+        string token = _tokenService.GenerateToken(profile.Id, 1)
             ?? throw new Exception("Can't create JWT");
 
-        // O prefixo $$ permite usar chaves normais no HTML e {{ }} para interpolar variáveis C#
         string emailBody = $$"""
         <!DOCTYPE html>
         <html lang="en">
@@ -165,13 +190,13 @@ public class ProfilesService : IProfilesService
 
     public async Task<ProfileModel> GetProfiles(Guid userId)
     {
-        return await _profilesRepository.PublicGetProfileById(userId) 
+        return await _profilesRepository.PublicGetProfileById(userId)
             ?? throw new NotFoundException("Profile not found");
     }
 
     public async Task ModifyProfile(ModifyProfileDTO update, Guid userId)
     {
-        var oldProfile = await _profilesRepository.GetProfileById(userId) 
+        var oldProfile = await _profilesRepository.GetProfileById(userId)
             ?? throw new NotFoundException("Profile doesnt exists");
 
         string? photoUrl = update.Photo != null ? await _cloudinaryService.UploadImageAsync(update.Photo) : null;

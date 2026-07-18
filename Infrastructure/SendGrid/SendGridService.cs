@@ -21,7 +21,7 @@ public class SendGridService : ISendGridService
         string apiKey = _config["SENDGRID_APIKEY"] ?? throw new Exception("SENDGRID_APIKEY is null");
         var client = new SendGridClient(apiKey);
 
-        var from = new EmailAddress(_config["SENDGRID_EMAIL"], "Lucca Felipetto"); 
+        var from = new EmailAddress(_config["SENDGRID_EMAIL"], "Catalogozap"); 
         var to = new EmailAddress(email, email);
 
         var msg = MailHelper.CreateSingleEmail(from, to, subject, plainTextContent, htmlBody);

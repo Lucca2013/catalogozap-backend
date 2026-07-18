@@ -8,6 +8,7 @@ public interface IProfilesService
     Task<bool> HasReachedFreeTierLimit(Guid userId);
     Task<string> Login(LoginDTO dto);
     Task Register(RegisterDTO dto);
+    Task ResetPassword(ResetPasswordDTO dto, Guid UserId);
     Task PasswordRecovery(PasswordRecoveryDTO dto);
     Task<ProfileModel> GetProfiles(Guid UserId);
     Task ModifyProfile(ModifyProfileDTO update, Guid UserId);
