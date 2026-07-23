@@ -1,6 +1,6 @@
 namespace CatalogoZap.DTOs
 {
-    public class ModifyProfileDTO
+    public record ModifyProfileDTO
     {
         public string? Name {get; set;}
 

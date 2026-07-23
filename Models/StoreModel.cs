@@ -1,6 +1,6 @@
 namespace CatalogoZap.Models;
 
-public class StoreModel
+public record StoreModel
 {
     public Guid Id { get; set; }
     public Guid UserId { get; set; }

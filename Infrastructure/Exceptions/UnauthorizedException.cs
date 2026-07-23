@@ -1,6 +1,6 @@
 namespace CatalogoZap.Infrastructure.Exceptions;
 
-public class UnauthorizedException : Exception
+public sealed class UnauthorizedException : Exception
 {
     public UnauthorizedException(string message) : base(message) {}
 }

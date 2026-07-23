@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using CatalogoZap.Services.Interfaces;
+using CatalogoZap.Services;
 using CatalogoZap.DTOs;
 using CatalogoZap.Infrastructure.JWT;
 using Microsoft.AspNetCore.Authorization;
@@ -10,21 +10,15 @@ namespace CatalogoZap.Controllers;
 
 [ApiController]
 [Route("/api/profiles")]
-public class ProfilesController : ControllerBase
+public sealed class ProfilesController(
+        ProfilesService profilesService
+    ) : ControllerBase
 {
-    private readonly IProfilesService _profilesService;
-
-    public ProfilesController(IProfilesService profilesService)
-    {
-        _profilesService = profilesService;
-    }
-
     [HttpGet("userId")]
     public async Task<IActionResult> GetProfiles(Guid UserId)
     {
-        try { return Ok(await _profilesService.GetProfiles(UserId)); }
-        catch (NotFoundException err) { return NotFound(err.Message); }
-        catch (Exception) { return StatusCode(500); }
+        var result = await profilesService.GetProfiles(UserId); 
+        return Ok(result);
     }
 
     [HttpPatch]
@@ -33,9 +27,7 @@ public class ProfilesController : ControllerBase
     {
         var UserId = TokenService.GetUserId(User);
 
-        try { await _profilesService.ModifyProfile(update, UserId); }
-        catch (NotFoundException err) { return NotFound(err.Message); }
-        catch (Exception) { return StatusCode(500); }
+        await profilesService.ModifyProfile(update, UserId);
 
         return Ok();
     }

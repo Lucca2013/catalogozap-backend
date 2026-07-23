@@ -1,17 +1,14 @@
 using CatalogoZap.Models;
-using CatalogoZap.Repositories.Interfaces;
+using CatalogoZap.Repositories;
 using System.Data;
 using Dapper;
 
 namespace CatalogoZap.Repositories;
 
-public class StoresRepository : IStoresRepository
+public sealed class StoresRepository(
+        IDbConnection conn
+    )
 {
-    private readonly IDbConnection _conn;
-    public StoresRepository(IDbConnection conn)
-    {
-        _conn = conn;
-    }
     public async Task<List<StoreModel>> SelectStores(Guid UserId)
     {
         var query = @"
@@ -25,7 +22,7 @@ public class StoresRepository : IStoresRepository
             WHERE user_id = @user_id
         ";
 
-        var stores = await _conn.QueryAsync<StoreModel>(query, new
+        var stores = await conn.QueryAsync<StoreModel>(query, new
         {
             user_id = UserId
         });
@@ -46,7 +43,7 @@ public class StoresRepository : IStoresRepository
             WHERE id = @store_id
         ";
 
-        var store = await _conn.QuerySingleOrDefaultAsync<StoreModel>(query, new
+        var store = await conn.QuerySingleOrDefaultAsync<StoreModel>(query, new
         {
             store_id = Id
         });
@@ -62,7 +59,7 @@ public class StoresRepository : IStoresRepository
         values 
             (@UserId, @Name, @Bio, @LogoUrl)";
 
-        await _conn.QueryAsync(query, store);
+        await conn.QueryAsync(query, store);
 
         return "New store successfully created.";
     }
@@ -77,7 +74,7 @@ public class StoresRepository : IStoresRepository
                 logo_url = @LogoUrl
             WHERE id = @Id AND user_id = @UserId";
 
-        await _conn.QueryAsync(query, store);
+        await conn.QueryAsync(query, store);
 
         return "store updated successfully";
     }
@@ -87,7 +84,7 @@ public class StoresRepository : IStoresRepository
         var query = @"
             DELETE FROM stores WHERE id = @StoreId AND user_id = @UserId";
 
-        await _conn.QueryAsync(query, new
+        await conn.QueryAsync(query, new
         {
             UserId = userId,
             StoreId = storeId

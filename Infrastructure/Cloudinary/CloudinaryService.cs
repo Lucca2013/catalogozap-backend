@@ -1,27 +1,13 @@
 using CloudinaryDotNet;
 using CloudinaryDotNet.Actions;
+using CatalogoZap.Options.Cloudinary;
+using Microsoft.Extensions.Options;
 
 namespace CatalogoZap.Infrastructure.CloudinaryService;
 
-public interface ICloudinaryService
+public sealed class CloudinaryService(IOptions<CloudinaryOptions> options)
 {
-    Task<string> UploadImageAsync(IFormFile image);
-    Task<DeletionResult> DeleteImageAsync(string path);
-}
-
-public class CloudinaryService : ICloudinaryService
-{
-    private readonly Cloudinary _cloudinary;
-
-    public CloudinaryService(IConfiguration config)
-    {
-        var cloudinaryUrl = config["CLOUDINARY_KEY"];
-
-        if (string.IsNullOrEmpty(cloudinaryUrl))
-            throw new Exception("CLOUDINARY_URL not found");
-
-        _cloudinary = new Cloudinary(cloudinaryUrl);
-    }
+    private readonly Cloudinary cloudinary = new Cloudinary(options.Value.CloudinaryKey);
 
     public async Task<string> UploadImageAsync(IFormFile image)
     {
@@ -32,7 +18,7 @@ public class CloudinaryService : ICloudinaryService
             Folder = "products"
         };
 
-        var result = await _cloudinary.UploadAsync(uploadParams);
+        var result = await cloudinary.UploadAsync(uploadParams);
         return result.SecureUrl.ToString();
     }
 
@@ -43,7 +29,7 @@ public class CloudinaryService : ICloudinaryService
             ResourceType = ResourceType.Image
         };
 
-        var result = await _cloudinary.DestroyAsync(deletionParams);
+        var result = await cloudinary.DestroyAsync(deletionParams);
 
         return result;
 

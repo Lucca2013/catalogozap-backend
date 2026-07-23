@@ -3,7 +3,7 @@ using CatalogoZap.Attributes;
 
 namespace CatalogoZap.DTOs;
 
-public class StoreDTO
+public record StoreDTO
 {
     [Required] required public string Name { get; set; }
     [Required] required public string Bio { get; set; }

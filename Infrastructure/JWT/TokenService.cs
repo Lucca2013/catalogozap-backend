@@ -2,43 +2,31 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using CatalogoZap.Options.Token;
+using Microsoft.Extensions.Options;
 
 namespace CatalogoZap.Infrastructure.JWT;
 
-public interface ITokenService
+public sealed class TokenService(IOptions<TokenOptions> options)
 {
-	string GenerateToken(Guid userId, int expirationHours);
-}
+	public static TokenValidationParameters GetValidationParameters(string jwtKey, string jwtIssuer, string jwtAudience) => new()
+    {
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
 
-public class TokenService : ITokenService
-{
-	private readonly IConfiguration _config;
+        ValidateIssuer = true,
+        ValidateAudience = true,
 
-	public TokenService(IConfiguration config)
-	{
-		_config = config;
-	}
+        ValidIssuer = jwtIssuer,
+        ValidAudience = jwtAudience,
 
-	public static TokenValidationParameters GetValidationParameters(IConfiguration config) => new()
-	{
-		ValidateIssuerSigningKey = true,
-		IssuerSigningKey = new SymmetricSecurityKey(
-			Encoding.UTF8.GetBytes(config["JWT_KEY"]!)
-		),
-
-		ValidateIssuer = true,
-		ValidateAudience = true,
-
-		ValidIssuer = config["JWT_ISSUER"],
-		ValidAudience = config["JWT_AUDIENCE"],
-
-		ValidateLifetime = true,
-		ClockSkew = TimeSpan.Zero
-	};
+        ValidateLifetime = true,
+        ClockSkew = TimeSpan.Zero
+    };
 
 	public string GenerateToken(Guid userId, int expirationHours)
 	{
-		var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["JWT_KEY"]!));
+		var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(options.Value.JwtKey));
 		var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
 		var claims = new[] {
@@ -47,8 +35,8 @@ public class TokenService : ITokenService
 		};
 
 		var token = new JwtSecurityToken(
-			issuer: _config["JWT_ISSUER"],
-			audience: _config["JWT_AUDIENCE"],
+			issuer: options.Value.JwtIssuer,
+			audience: options.Value.JwtAudience,
 			claims: claims,
 			expires: DateTime.UtcNow.AddHours(expirationHours),
 			signingCredentials: credentials

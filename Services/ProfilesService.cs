@@ -4,58 +4,44 @@ using CatalogoZap.Infrastructure.Exceptions;
 using CatalogoZap.Infrastructure.JWT;
 using CatalogoZap.Infrastructure.SendGrid;
 using CatalogoZap.Models;
-using CatalogoZap.Repositories.Interfaces;
-using CatalogoZap.Services.Interfaces;
+using CatalogoZap.Repositories;
+using CatalogoZap.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Configuration;
+using CatalogoZap.Options.FrontEnd;
+using Microsoft.Extensions.Options;
 
 namespace CatalogoZap.Services;
 
-public class ProfilesService : IProfilesService
+public sealed class ProfilesService(
+        ProductsRepository productsRepository,
+        ProfilesRepository profilesRepository,
+        TokenService tokenService,
+        CloudinaryService cloudinaryService,
+        SendGridService sendGridService,
+        IOptions<FrontEndOptions> options
+    )
 {
-    private readonly IProductsRepository _productsRepository;
-    private readonly IProfilesRepository _profilesRepository;
-    private readonly ITokenService _tokenService;
-    private readonly ICloudinaryService _cloudinaryService;
-    private readonly ISendGridService _sendGridService;
-    private readonly IConfiguration _config;
-
-    public ProfilesService(
-        IProductsRepository productsRepository,
-        IProfilesRepository profilesRepository,
-        ITokenService tokenService,
-        ICloudinaryService cloudinaryService,
-        ISendGridService sendGridService,
-        IConfiguration config)
-    {
-        _productsRepository = productsRepository;
-        _profilesRepository = profilesRepository;
-        _tokenService = tokenService;
-        _cloudinaryService = cloudinaryService;
-        _sendGridService = sendGridService;
-        _config = config;
-    }
-
     public async Task<bool> HasReachedFreeTierLimit(Guid userId)
     {
-        var productsAmount = await _productsRepository.GetProductsAmountByUserId(userId);
+        var productsAmount = await productsRepository.GetProductsAmountByUserId(userId);
         return productsAmount >= 10;
     }
 
     public async Task<string> Login(LoginDTO dto)
     {
-        var dbData = await _profilesRepository.GetProfileByEmail(dto.Email)
-            ?? throw new UnauthorizedException("User doesnt exist");
+        var dbData = await profilesRepository.GetProfileByEmail(dto.Email)
+            ?? throw new NotFoundException("User doesnt exist");
 
         if (!BCrypt.Net.BCrypt.Verify(dto.Password, dbData.Password))
             throw new UnauthorizedException("Incorrect Password");
 
-        return _tokenService.GenerateToken(dbData.Id, 24);
+        return tokenService.GenerateToken(dbData.Id, 24);
     }
 
     public async Task Register(RegisterDTO dto)
     {
-        if (await _profilesRepository.GetProfileByEmail(dto.Email) != null)
+        if (await profilesRepository.GetProfileByEmail(dto.Email) != null)
             throw new UnauthorizedException("User already exist");
 
         string hashPassword = BCrypt.Net.BCrypt.HashPassword(dto.Password, workFactor: 12);
@@ -67,12 +53,12 @@ public class ProfilesService : IProfilesService
             HashPassword = hashPassword
         };
 
-        await _profilesRepository.InsertUser(register);
+        await profilesRepository.InsertUser(register);
     }
 
     public async Task ResetPassword(ResetPasswordDTO dto, Guid UserId)
     {
-        var profile = await _profilesRepository.GetProfileById(UserId);
+        var profile = await profilesRepository.GetProfileById(UserId);
 
         if (profile == null)
             throw new NotFoundException("User do not exist");
@@ -92,15 +78,15 @@ public class ProfilesService : IProfilesService
             Password = hashPassword
         };
 
-        await _profilesRepository.ModifyProfile(UserId, newData);
+        await profilesRepository.ModifyProfile(UserId, newData);
     }
 
     public async Task PasswordRecovery(PasswordRecoveryDTO dto)
     {
-        var profile = await _profilesRepository.GetProfileByEmail(dto.Email)
+        var profile = await profilesRepository.GetProfileByEmail(dto.Email)
             ?? throw new NotFoundException("User doesnt exist");
 
-        string token = _tokenService.GenerateToken(profile.Id, 1)
+        string token = tokenService.GenerateToken(profile.Id, 1)
             ?? throw new Exception("Can't create JWT");
 
         string emailBody = $$"""
@@ -138,7 +124,7 @@ public class ProfilesService : IProfilesService
                                     <table border="0" cellspacing="0" cellpadding="0" style="margin: 0 auto;">
                                         <tr>
                                             <td align="center" style="border-radius: 4px; background-color: #4caf50;">
-                                                <a href="{{_config["FRONTEND_URL"]}}reset-password?{{token}}" target="_blank" style="font-size: 16px; font-weight: bold; color: #ffffff; text-decoration: none; padding: 14px 30px; display: inline-block; border-radius: 4px;">
+                                                <a href="{{options.Value.FrontEndUrl}}}reset-password?{{token}}" target="_blank" style="font-size: 16px; font-weight: bold; color: #ffffff; text-decoration: none; padding: 14px 30px; display: inline-block; border-radius: 4px;">
                                                     Reset Password
                                                 </a>
                                             </td>
@@ -148,8 +134,8 @@ public class ProfilesService : IProfilesService
                                     <!-- Alternative Link -->
                                     <p style="font-size: 14px; line-height: 1.5; color: #666666; margin: 30px 0 0 0;">
                                         If the button above does not work, access this link to recovery your password:<br>
-                                        <a href="{{_config["FRONTEND_URL"]}}reset-password?{{token}}" target="_blank" style="color: #2e7d32; text-decoration: underline; word-break: break-all; display: inline-block; margin-top: 10px;">
-                                            {{_config["FRONTEND_URL"]}}reset-password?{{token}}
+                                        <a href="{{options.Value.FrontEndUrl}}reset-password?{{token}}" target="_blank" style="color: #2e7d32; text-decoration: underline; word-break: break-all; display: inline-block; margin-top: 10px;">
+                                            {{options.Value.FrontEndUrl}}reset-password?{{token}}
                                         </a>
                                     </p>
                                 </td>
@@ -175,7 +161,7 @@ public class ProfilesService : IProfilesService
         </html>
         """;
 
-        bool isEmailSent = await _sendGridService.SendEmail(
+        bool isEmailSent = await sendGridService.SendEmail(
             dto.Email,
             "CatalogoZap: password recovery",
             "Access this link to recovery your password",
@@ -190,16 +176,16 @@ public class ProfilesService : IProfilesService
 
     public async Task<ProfileModel> GetProfiles(Guid userId)
     {
-        return await _profilesRepository.PublicGetProfileById(userId)
+        return await profilesRepository.PublicGetProfileById(userId)
             ?? throw new NotFoundException("Profile not found");
     }
 
     public async Task ModifyProfile(ModifyProfileDTO update, Guid userId)
     {
-        var oldProfile = await _profilesRepository.GetProfileById(userId)
+        var oldProfile = await profilesRepository.GetProfileById(userId)
             ?? throw new NotFoundException("Profile doesnt exists");
 
-        string? photoUrl = update.Photo != null ? await _cloudinaryService.UploadImageAsync(update.Photo) : null;
+        string? photoUrl = update.Photo != null ? await cloudinaryService.UploadImageAsync(update.Photo) : null;
         string? password = update.Password != null ? BCrypt.Net.BCrypt.HashPassword(update.Password, workFactor: 12) : null;
 
         var newData = new ProfileModel
@@ -215,6 +201,6 @@ public class ProfilesService : IProfilesService
             Password = password ?? oldProfile.Password
         };
 
-        await _profilesRepository.ModifyProfile(userId, newData);
+        await profilesRepository.ModifyProfile(userId, newData);
     }
 }

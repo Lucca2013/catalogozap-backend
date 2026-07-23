@@ -2,31 +2,24 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using CatalogoZap.Infrastructure.JWT;
 using CatalogoZap.DTOs;
-using CatalogoZap.Services.Interfaces;
+using CatalogoZap.Services;
 using CatalogoZap.Infrastructure.Exceptions;
 
 namespace CatalogoZap.Controllers;
 
 [ApiController]
 [Route("/api/products")]
-public class ProductsController : ControllerBase
+public sealed class ProductsController(
+		ProductsService productsService
+	) : ControllerBase
 {
-	private readonly IProductsService _productsService;
-
-	public ProductsController(IProductsService productsService)
-	{
-		_productsService = productsService;
-	}
-
 	[HttpPost]
 	[Authorize]
 	public async Task<IActionResult> PostProduct([FromForm] ProductDTO dto)
 	{
         Guid userId = TokenService.GetUserId(User);
 
-        try { await _productsService.CreateProduct(dto, userId); }
-        catch (BadRequestException err) { return BadRequest(err.Message); }
-		catch (Exception) { return StatusCode(500); }
+        await productsService.CreateProduct(dto, userId);
 
 		return Ok();
 	}
@@ -37,8 +30,9 @@ public class ProductsController : ControllerBase
 		//It will be null if it is not admin acess
 		var UserId = TokenService.TryGetUserId(User);
 
-		try { return Ok(await _productsService.GetProducts(storeId, UserId)); }
-		catch (Exception err) { return BadRequest(err.Message); }
+		var products = await productsService.GetProducts(storeId, UserId);
+
+		return Ok(products);
 	}
 
 	[HttpPatch]
@@ -47,8 +41,7 @@ public class ProductsController : ControllerBase
 	{
 		var UserId = TokenService.GetUserId(User);
 
-		try { await _productsService.ModifyProducts(Product, UserId); } 
-		catch (Exception error) { return BadRequest(error.Message); }
+		await productsService.ModifyProducts(Product, UserId);
 
 		return Ok();
 	}
@@ -59,12 +52,7 @@ public class ProductsController : ControllerBase
 	{
 		var UserId = TokenService.GetUserId(User);
 
-		Console.WriteLine(Id);
-		System.Console.WriteLine(StoreId);
-		System.Console.WriteLine(UserId);
-
-		try { await _productsService.DeleteProduct( Id, UserId, StoreId);} 
-		catch (Exception error) { return BadRequest(error.Message); }
+		await productsService.DeleteProduct(Id, UserId, StoreId);
 
 		return Ok();
 	}

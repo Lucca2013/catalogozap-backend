@@ -1,6 +1,6 @@
 namespace CatalogoZap.Models;
 
-public class ProfileModel
+public record ProfileModel
 {
     public required Guid Id { get; set; }
     public required string Username { get; set; }

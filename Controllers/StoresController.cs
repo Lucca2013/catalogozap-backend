@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using CatalogoZap.Infrastructure.JWT;
-using CatalogoZap.Services.Interfaces;
+using CatalogoZap.Services;
 using CatalogoZap.Models;
 using CatalogoZap.DTOs;
 using CatalogoZap.Infrastructure.Exceptions;
@@ -10,23 +10,19 @@ namespace CatalogoZap.Controllers;
 
 [ApiController]
 [Route("/api/stores")]
-public class StoresController : ControllerBase
+public sealed class StoresController(
+		StoresService storesService
+	) : ControllerBase
 {
-	private readonly IStoresService _storesService;
-
-	public StoresController(IStoresService storesService)
-	{
-		_storesService = storesService;
-	}
-
 	[HttpGet]
     [Authorize]
 	public async Task<IActionResult> GetStores()
 	{
 		var UserId = TokenService.GetUserId(User);
 
-		try { return Ok(await _storesService.GetStores(UserId)); }
-		catch (Exception) { return StatusCode(500); }
+		var stores = await storesService.GetStores(UserId);
+
+		return Ok(stores);
 	}
 
 	[HttpPost]
@@ -35,8 +31,7 @@ public class StoresController : ControllerBase
 	{
 		var UserId = TokenService.GetUserId(User);
 
-		try{ await _storesService.CreateStore(newStore, UserId); }
-		catch (Exception) { return StatusCode(500); }
+		await storesService.CreateStore(newStore, UserId);
 
 		return Ok();
 	}
@@ -47,9 +42,7 @@ public class StoresController : ControllerBase
 	{
 		var UserId = TokenService.GetUserId(User);
 
-		try { await _storesService.ModifyStore(Store, UserId); } 
-		catch (NotFoundException err) { return NotFound(err.Message); }
-		catch (Exception) { return StatusCode(500); }
+		await storesService.ModifyStore(Store, UserId);
 
 		return Ok();
 	}
@@ -60,9 +53,7 @@ public class StoresController : ControllerBase
 	{
 		var UserId = TokenService.GetUserId(User);
 		
-		try { await _storesService.DeleteStore(UserId, StoreId); }
-		catch (NotFoundException Error) { return NotFound(Error.Message); }
-		catch (Exception) { return StatusCode(500); }
+		await storesService.DeleteStore(UserId, StoreId);
 
 		return Ok();
 	}

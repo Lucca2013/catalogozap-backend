@@ -3,7 +3,7 @@ using CatalogoZap.Attributes;
 
 namespace CatalogoZap.DTOs;
 
-public class ProductDTO
+public record ProductDTO
 {
     [Required] public Guid StoreId { get; set; }
     [Required] public required string Name { get; set; }
@@ -16,7 +16,7 @@ public class ProductDTO
 
 }
 
-public class ModProductsDTO
+public record ModProductsDTO
 {
     public Guid Id { get; set; }
     public Guid StoreId { get; set; }

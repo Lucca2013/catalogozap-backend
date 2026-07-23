@@ -1,19 +1,14 @@
-using CatalogoZap.Repositories.Interfaces;
+using CatalogoZap.Repositories;
 using System.Data;
 using Dapper;
 using CatalogoZap.Models;
 
 namespace CatalogoZap.Repositories;
 
-public class ProductsRepository : IProductsRepository
+public sealed class ProductsRepository(
+        IDbConnection conn
+    )
 {
-    private readonly IDbConnection _conn;
-
-    public ProductsRepository(IDbConnection connection)
-    {
-        _conn = connection;
-    }
-
     public async Task<int> GetProductsAmountByUserId(Guid userId)
     {
         var query = @"
@@ -23,7 +18,7 @@ public class ProductsRepository : IProductsRepository
             WHERE user_id = @userId
         ";
 
-        return await _conn.QuerySingleAsync<int>(query, new { userId });
+        return await conn.QuerySingleAsync<int>(query, new { userId });
     }
 
     public async Task CreateProduct(ProductModel data)
@@ -35,7 +30,7 @@ public class ProductsRepository : IProductsRepository
                 (@UserId, @Name, @PriceCents, @PhotoUrl, @StoreId, @Avaliable)
         ";
 
-        await _conn.ExecuteScalarAsync(query, new
+        await conn.ExecuteScalarAsync(query, new
         {
             data.UserId,
             data.Name,
@@ -61,7 +56,7 @@ public class ProductsRepository : IProductsRepository
         FROM products 
         WHERE store_id = @store_id AND avaliable = TRUE";
 
-        var products = await _conn.QueryAsync<ProductModel>(query, new
+        var products = await conn.QueryAsync<ProductModel>(query, new
         {
             store_Id = storeId
         });
@@ -83,7 +78,7 @@ public class ProductsRepository : IProductsRepository
         FROM products 
         WHERE id = @id AND store_id = @store_id AND user_id = @user_id";
 
-        var products = await _conn.QuerySingleOrDefaultAsync<ProductModel>(query, new
+        var products = await conn.QuerySingleOrDefaultAsync<ProductModel>(query, new
         {
             id = Id,
             store_id = StoreId,
@@ -107,7 +102,7 @@ public class ProductsRepository : IProductsRepository
         FROM products 
         WHERE store_id = @store_id AND user_id = @user_id";
 
-        var products = await _conn.QueryAsync<ProductModel>(query, new
+        var products = await conn.QueryAsync<ProductModel>(query, new
         {
             store_Id = storeId,
             user_id = UserId
@@ -129,7 +124,7 @@ public class ProductsRepository : IProductsRepository
             AND user_id = @UserId
         ";
         
-        await _conn.QueryAsync(query, product);
+        await conn.QueryAsync(query, product);
     }
 
     public async Task DeleteProduct(Guid Id, Guid StoreId, Guid UserID)
@@ -138,7 +133,7 @@ public class ProductsRepository : IProductsRepository
             DELETE FROM products WHERE id = @Id AND store_id = @storeId AND user_id = @userID
         ";
 
-        await _conn.QueryAsync(query, new
+        await conn.QueryAsync(query, new
         {
             userID = UserID,
             storeId = StoreId,

@@ -1,19 +1,14 @@
-using CatalogoZap.Repositories.Interfaces;
+using CatalogoZap.Repositories;
 using System.Data;
 using Dapper;
 using CatalogoZap.Models;
 
 namespace CatalogoZap.Repositories;
 
-public class ProfilesRepository : IProfilesRepository
+public sealed class ProfilesRepository(
+        IDbConnection conn
+    )
 {
-    private readonly IDbConnection _conn;
-
-    public ProfilesRepository(IDbConnection connection)
-    {
-        _conn = connection;
-    }
-
     public async Task<ProfileModel?> GetProfileById(Guid userId)
     {
         var query = @"
@@ -31,7 +26,7 @@ public class ProfilesRepository : IProfilesRepository
             WHERE id = @userId
         ";
 
-        var profile = await _conn.QuerySingleOrDefaultAsync<ProfileModel>(query, new { userId });
+        var profile = await conn.QuerySingleOrDefaultAsync<ProfileModel>(query, new { userId });
 
         return profile;
     }
@@ -52,7 +47,7 @@ public class ProfilesRepository : IProfilesRepository
             WHERE id = @userId
         ";
 
-        var profile = await _conn.QuerySingleOrDefaultAsync<ProfileModel>(query, new { userId });
+        var profile = await conn.QuerySingleOrDefaultAsync<ProfileModel>(query, new { userId });
 
         return profile;
     }
@@ -67,7 +62,7 @@ public class ProfilesRepository : IProfilesRepository
             FROM profiles
             WHERE email = @email";
 
-        return await _conn.QuerySingleOrDefaultAsync<LoginModel>(query, new
+        return await conn.QuerySingleOrDefaultAsync<LoginModel>(query, new
         {
             email = Email
         });
@@ -79,7 +74,7 @@ public class ProfilesRepository : IProfilesRepository
             INSERT INTO profiles(username, email, password) VALUES(@username, @email, @password)
         ";
 
-        await _conn.ExecuteAsync(query, new
+        await conn.ExecuteAsync(query, new
         {
             username = register.Username,
             email = register.Email,
@@ -100,6 +95,6 @@ public class ProfilesRepository : IProfilesRepository
                 password = @Password
             where id = @Id
         ";
-        await _conn.ExecuteAsync(query, newdata);
+        await conn.ExecuteAsync(query, newdata);
     }
 }

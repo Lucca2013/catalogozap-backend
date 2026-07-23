@@ -1,26 +1,19 @@
 using Microsoft.AspNetCore.Mvc;
 using CatalogoZap.DTOs;
-using CatalogoZap.Services.Interfaces;
-using CatalogoZap.Infrastructure.Exceptions;
+using CatalogoZap.Services;
 
 namespace CatalogoZap.Controllers;
 
 [ApiController]
 [Route("/api/users/login")]
-public class LoginController : ControllerBase
+public sealed class LoginController(
+        ProfilesService profilesService
+    ) : ControllerBase
 {
-    private readonly IProfilesService _profilesService;
-
-    public LoginController(IProfilesService profilesService)
-    {
-        _profilesService = profilesService;
-    }
-
     [HttpPost]
     public async Task<IActionResult> Login(LoginDTO dto)
     {
-        try { return Ok(await _profilesService.Login(dto)); }
-        catch (UnauthorizedException err) { return Unauthorized(err.Message); }
-        catch (Exception err) { Console.WriteLine(err); return StatusCode(500); }
+        var result = await profilesService.Login(dto);
+        return Ok(result);
     }
 }

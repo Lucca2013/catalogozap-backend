@@ -1,27 +1,18 @@
 using SendGrid;
 using SendGrid.Helpers.Mail;
+using CatalogoZap.Options.SendGrid;
+using Microsoft.Extensions.Options;
 
 namespace CatalogoZap.Infrastructure.SendGrid;
 
-public interface ISendGridService
+public sealed class SendGridService(IOptions<SendGridOptions> options)
 {
-	Task<bool> SendEmail(string email, string subject, string plainTextContent, string htmlBody);
-}
-
-public class SendGridService : ISendGridService
-{
-    private readonly IConfiguration _config;
-	public SendGridService(IConfiguration config)
-    {
-        _config = config;
-    }
-
     public async Task<bool> SendEmail(string email, string subject, string plainTextContent, string htmlBody)
     {
-        string apiKey = _config["SENDGRID_APIKEY"] ?? throw new Exception("SENDGRID_APIKEY is null");
+        string apiKey = options.Value.SendGridApiKey;
         var client = new SendGridClient(apiKey);
 
-        var from = new EmailAddress(_config["SENDGRID_EMAIL"], "Catalogozap"); 
+        var from = new EmailAddress(options.Value.SendGridEmail, "Catalogozap"); 
         var to = new EmailAddress(email, email);
 
         var msg = MailHelper.CreateSingleEmail(from, to, subject, plainTextContent, htmlBody);

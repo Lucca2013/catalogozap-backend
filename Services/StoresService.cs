@@ -1,6 +1,6 @@
 using CatalogoZap.Models;
-using CatalogoZap.Services.Interfaces;
-using CatalogoZap.Repositories.Interfaces;
+using CatalogoZap.Services;
+using CatalogoZap.Repositories;
 using CatalogoZap.DTOs;
 using CatalogoZap.Infrastructure.CloudinaryService;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -8,27 +8,20 @@ using CatalogoZap.Infrastructure.Exceptions;
 
 namespace CatalogoZap.Services;
 
-public class StoresService : IStoresService
+public sealed class StoresService(
+        StoresRepository storesRepository,
+        CloudinaryService cloudinaryService,
+        ProductsService productsService
+    )
 {
-    private readonly IStoresRepository _storesRepository;
-    private readonly IProductsService _productsService;
-    private readonly ICloudinaryService _cloudinaryService;
-
-    public StoresService(IStoresRepository storesRepository, ICloudinaryService cloudinaryService, IProductsService productsService)
-    {
-        _storesRepository = storesRepository;
-        _productsService = productsService;
-        _cloudinaryService = cloudinaryService;
-    }
-
     public async Task<List<StoreModel>> GetStores(Guid UserId)
     {
-        return await _storesRepository.SelectStores(UserId);
+        return await storesRepository.SelectStores(UserId);
     }
 
     public async Task CreateStore(StoreDTO store, Guid UserId)
     {
-        string logoUrl = await _cloudinaryService.UploadImageAsync(store.Photo);
+        string logoUrl = await cloudinaryService.UploadImageAsync(store.Photo);
 
         var newStore = new StoreModel
         {
@@ -38,14 +31,14 @@ public class StoresService : IStoresService
             LogoUrl = logoUrl
         };
 
-        await _storesRepository.CreateStore(newStore);
+        await storesRepository.CreateStore(newStore);
     }
 
     public async Task ModifyStore(ModifyStoreDTO store, Guid UserId)
     {
-        var oldStore = await _storesRepository.SelectStoreById(store.StoreId) ?? throw new NotFoundException("Store not found");
+        var oldStore = await storesRepository.SelectStoreById(store.StoreId) ?? throw new NotFoundException("Store not found");
 
-        string? photoUrl = store.Photo != null ? await _cloudinaryService.UploadImageAsync(store.Photo) : null;
+        string? photoUrl = store.Photo != null ? await cloudinaryService.UploadImageAsync(store.Photo) : null;
 
         var newStore = new StoreModel
         {
@@ -56,7 +49,7 @@ public class StoresService : IStoresService
             LogoUrl = photoUrl ?? oldStore.LogoUrl
         };
 
-        await _storesRepository.ModStore(newStore);
+        await storesRepository.ModStore(newStore);
 
         if (photoUrl != null)
         {
@@ -66,16 +59,16 @@ public class StoresService : IStoresService
                 string fullPathWithExtension = oldStore.LogoUrl.Substring(startIndex);
                 int lastDotIndex = fullPathWithExtension.LastIndexOf('.');
                 string PhotoUrlPath = (lastDotIndex != -1) ? fullPathWithExtension.Substring(0, lastDotIndex) : fullPathWithExtension;
-                await _cloudinaryService.DeleteImageAsync(PhotoUrlPath);
+                await cloudinaryService.DeleteImageAsync(PhotoUrlPath);
             }
         }
     }
 
     public async Task DeleteStore(Guid UserId, Guid StoreId)
     {
-        StoreModel store = await _storesRepository.SelectStoreById(StoreId) ?? throw new NotFoundException("Store not found");
+        StoreModel store = await storesRepository.SelectStoreById(StoreId) ?? throw new NotFoundException("Store not found");
 
-        await _storesRepository.DeleteStore(UserId, StoreId);
+        await storesRepository.DeleteStore(UserId, StoreId);
 
         if (!string.IsNullOrWhiteSpace(store.LogoUrl))
         {
@@ -85,14 +78,14 @@ public class StoresService : IStoresService
                 string fullPathWithExtension = store.LogoUrl.Substring(startIndex);
                 int lastDotIndex = fullPathWithExtension.LastIndexOf('.');
                 string PhotoUrlPath = (lastDotIndex != -1) ? fullPathWithExtension.Substring(0, lastDotIndex) : fullPathWithExtension;
-                await _cloudinaryService.DeleteImageAsync(PhotoUrlPath);
+                await cloudinaryService.DeleteImageAsync(PhotoUrlPath);
             }
         }
 
-        var products = await _productsService.GetProducts(StoreId, null);
+        var products = await productsService.GetProducts(StoreId, null);
 
         foreach(var product in products){
-            await _productsService.DeleteProduct(product.Id, product.UserId, product.StoreId);
+            await productsService.DeleteProduct(product.Id, product.UserId, product.StoreId);
         }
     }
 
